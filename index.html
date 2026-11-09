@@ -42,13 +42,13 @@ footer{text-align:center;color:#8796a9;font-size:11px;padding:18px}
   <h2>Was möchtest du heute machen?</h2>
   <button class="wide" id="startQuiz">▶ Jetzt Vokabeln abfragen</button>
   <h2>Vokabeln hinzufügen</h2>
-  <button class="action" id="photoBtn"><span class="ico">📷</span><span><b>Buchseite fotografieren / Foto wählen</b><small>Text per Texterkennung auslesen</small></span></button>
+  <button class="action" id="photoBtn"><span class="ico">📷</span><span><b>Buchseite fotografieren / Foto wählen</b><small>Deutsch + Englisch erkennen, rechte Erklärungsspalte ausblenden</small></span></button>
   <input id="photo" type="file" accept="image/*" capture="environment" class="hidden">
   <img id="preview" class="preview hidden" alt="Ausgewähltes Foto">
   <div id="ocrStatus" class="muted"></div>
   <div id="ocrPanel" class="card hidden">
-   <b>Erkannten Text prüfen</b><p class="muted">Bitte kontrolliere die Zeilen und formatiere jedes Paar als Englisch – Deutsch.</p>
-   <textarea id="ocrText" placeholder="beautiful – schön&#10;to improve – verbessern"></textarea>
+   <b>Erkannten Text prüfen und Vokabelpaare bilden</b><p class="muted">Die Erkennung liest die linke Buchseite zweisprachig. Lautschrift kann mit auftauchen. Übertrage die passenden Wörter in das Format Englisch – Deutsch (eine Zeile pro Paar).</p>
+   <textarea id="ocrText" placeholder="a city – eine Stadt, eine Großstadt&#10;my friend – mein Freund / meine Freundin&#10;beach – der Strand"></textarea>
    <button class="wide" id="parseOCR">Paare übernehmen</button>
   </div>
   <button class="action" id="manualBtn"><span class="ico">＋</span><span><b>Vokabel manuell hinzufügen</b><small>Englisches und deutsches Wort eintragen</small></span></button>
@@ -104,7 +104,19 @@ function resetQuiz(){checked=false;$("answer").value="";$("feedback").className=
 $("checkAnswer").onclick=()=>{if(checked||!words.length)return;let w=words[idx%words.length],dir=$("direction").value,expected=dir==="en"?w.de:w.en,ans=$("answer").value.trim().toLocaleLowerCase("de-DE");if(!ans)return;let good=ans===expected.toLocaleLowerCase("de-DE");if(good)w.ok++;else w.bad++;checked=true;save();$("feedback").className="feedback "+(good?"good":"bad");$("feedback").textContent=good?"Richtig! Sehr gut 🎉":"Noch nicht ganz. Richtige Antwort: "+expected;$("checkAnswer").classList.add("hidden");$("nextQuestion").classList.remove("hidden");};
 $("nextQuestion").onclick=()=>{idx=(idx+1)%Math.max(1,words.length);resetQuiz();};$("shuffle").onclick=()=>{words.sort(()=>Math.random()-.5);idx=0;resetQuiz();};
 $("photoBtn").onclick=()=>$("photo").click();
-$("photo").onchange=async e=>{let file=e.target.files[0];if(!file)return;$("preview").src=URL.createObjectURL(file);$("preview").classList.remove("hidden");$("ocrPanel").classList.remove("hidden");$("ocrStatus").textContent="Texterkennung wird gestartet …";$("ocrText").value="";if(!window.Tesseract){$("ocrStatus").textContent="OCR-Bibliothek konnte nicht geladen werden. Du kannst den Text unten manuell eintragen.";return;}try{let result=await Tesseract.recognize(file,"eng",{logger:m=>{if(m.status==="recognizing text")$("ocrStatus").textContent="Texterkennung: "+Math.round(m.progress*100)+"%";}});$("ocrText").value=result.data.text;$("ocrStatus").textContent="Erkennung abgeschlossen. Bitte Text kontrollieren.";}catch(err){$("ocrStatus").textContent="Texterkennung nicht möglich. Bitte Text manuell eintragen."; }};
+$("photo").onchange=async e=>{let file=e.target.files[0];if(!file)return;$("preview").src=URL.createObjectURL(file);$("preview").classList.remove("hidden");$("ocrPanel").classList.remove("hidden");$("ocrStatus").textContent="Texterkennung wird gestartet …";$("ocrText").value="";if(!window.Tesseract){$("ocrStatus").textContent="OCR-Bibliothek konnte nicht geladen werden. Du kannst den Text unten manuell eintragen.";return;}try{
+ // Auf Buchseiten liegen die englische und deutsche Vokabelspalte links/mittig;
+ // die rechte Randspalte mit Aussprachetipps wird bewusst abgeschnitten.
+ const img=await loadImage(file);const scale=2.2;const cropW=Math.floor(img.width*0.685);
+ const canvas=document.createElement("canvas");canvas.width=Math.round(cropW*scale);canvas.height=Math.round(img.height*scale);
+ const ctx=canvas.getContext("2d");ctx.drawImage(img,0,0,cropW,img.height,0,0,canvas.width,canvas.height);
+ const pixels=ctx.getImageData(0,0,canvas.width,canvas.height);const d=pixels.data;
+ for(let i=0;i<d.length;i+=4){const gray=.299*d[i]+.587*d[i+1]+.114*d[i+2];const contrast=Math.max(0,Math.min(255,(gray-118)*1.55+128));d[i]=d[i+1]=d[i+2]=contrast;}
+ ctx.putImageData(pixels,0,0);
+ const result=await Tesseract.recognize(canvas,"eng+deu",{logger:m=>{if(m.status==="recognizing text")$("ocrStatus").textContent="Zweisprachige Texterkennung: "+Math.round(m.progress*100)+"%";},tessedit_pageseg_mode:6});
+ $("ocrText").value=result.data.text;$("ocrStatus").textContent="Erkennung abgeschlossen. Rechte Erklärungsspalte wurde abgeschnitten. Bitte Vokabelpaare kontrollieren.";
+ }catch(err){console.error(err);$("ocrStatus").textContent="Texterkennung nicht möglich. Bitte Foto bei gutem Licht erneut aufnehmen oder Text manuell eintragen."; }};
+function loadImage(file){return new Promise((resolve,reject)=>{const im=new Image();im.onload=()=>resolve(im);im.onerror=reject;im.src=URL.createObjectURL(file);});}
 $("parseOCR").onclick=()=>{let lines=$("ocrText").value.split(/\n/),added=0;for(let line of lines){let p=line.split(/\s+(?:–|-|—|;|\t)\s*/);if(p.length>=2){let en=p.shift().trim(),de=p.join(" ").trim();if(en&&de){words.push({en,de,ok:0,bad:0});added++;}}}if(!added){alert("Keine Wortpaare gefunden. Bitte nutze z. B. „beautiful – schön“ (eine Zeile pro Paar).");return;}save();$("ocrStatus").textContent=added+" Vokabeln übernommen.";tab("words");};
 $("exportWords").onclick=()=>{let csv="Englisch;Deutsch;Richtig;Falsch\n"+words.map(w=>[w.en,w.de,w.ok,w.bad].map(x=>'"'+String(x).replaceAll('"','""')+'"').join(";")).join("\n");let a=document.createElement("a");a.href=URL.createObjectURL(new Blob(["\ufeff"+csv],{type:"text/csv;charset=utf-8"}));a.download="meine-vokabeln.csv";a.click();URL.revokeObjectURL(a.href);};
 if("serviceWorker" in navigator && location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js").catch(()=>{});
