@@ -21,7 +21,7 @@ h2{font-size:20px;margin:17px 0 10px}.muted{color:var(--muted);font-size:14px}.c
 button,.button{border:0;border-radius:13px;background:var(--blue);color:white;padding:13px 15px;font-size:15px;font-weight:650;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;text-decoration:none}
 button.secondary{background:white;color:var(--blue);border:1px solid #d8e5f6}button:disabled{opacity:.45;cursor:not-allowed}.wide{width:100%}
 .action{display:flex;align-items:center;gap:13px;text-align:left;background:white;color:var(--ink);border:1px solid #e1eaf5;width:100%;margin:9px 0;padding:13px}.ico{width:42px;height:42px;border-radius:12px;background:var(--blue2);display:grid;place-items:center;font-size:21px;color:var(--blue)}.action small{display:block;color:var(--muted);font-weight:400;margin-top:3px}
-input,textarea,select{width:100%;padding:13px;border:1px solid #d6e1ef;border-radius:11px;background:white;font:inherit;color:var(--ink);margin:6px 0}textarea{min-height:130px;resize:vertical}.pair-table{width:100%;border-collapse:separate;border-spacing:0 8px;margin:8px 0}.pair-table th{font-size:12px;color:var(--muted);text-align:left;padding:0 6px}.pair-table td{vertical-align:top;padding:0 4px}.pair-table input{margin:0;padding:10px 8px;font-size:14px}.pair-table button{padding:9px 10px;background:#fff;color:#b83f43;border:1px solid #f0d6d6}.pair-tools{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}.word{display:flex;justify-content:space-between;gap:10px;align-items:center}.word b{display:block}.word small{display:block;color:var(--muted);margin-top:3px}.counts{font-size:12px;white-space:nowrap;color:var(--muted)}
+input,textarea,select{width:100%;padding:13px;border:1px solid #d6e1ef;border-radius:11px;background:white;font:inherit;color:var(--ink);margin:6px 0}textarea{min-height:130px;resize:vertical}.word{display:flex;justify-content:space-between;gap:10px;align-items:center}.word b{display:block}.word small{display:block;color:var(--muted);margin-top:3px}.counts{font-size:12px;white-space:nowrap;color:var(--muted)}
 .question{font-size:32px;text-align:center;font-weight:750;padding:34px 10px 20px;overflow-wrap:anywhere}.feedback{padding:12px;border-radius:12px;margin:10px 0;font-weight:650}.good{background:#e5f6ed;color:var(--green)}.bad{background:#fceaea;color:var(--red)}
 .hidden{display:none!important}.preview{max-width:100%;max-height:210px;border-radius:12px;margin:8px auto;display:block}.bar{height:9px;border-radius:99px;background:#e4edf8;overflow:hidden}.bar>i{height:100%;display:block;background:var(--blue)}
 footer{text-align:center;color:#8796a9;font-size:11px;padding:18px}
@@ -43,14 +43,14 @@ footer{text-align:center;color:#8796a9;font-size:11px;padding:18px}
   <button class="wide" id="startQuiz">▶ Jetzt Vokabeln abfragen</button>
   <h2>Vokabeln hinzufügen</h2>
   <button class="action" id="photoBtn"><span class="ico">📷</span><span><b>Buchseite fotografieren / Foto wählen</b><small>Englisch und Deutsch spaltenweise erkennen und zuordnen</small></span></button>
+  <button class="action" id="pasteBtn"><span class="ico">📋</span><span><b>Text einfügen (iOS Live Text)</b><small>Im Foto Text antippen → Kopieren → hier einfügen, genauer als OCR</small></span></button>
   <input id="photo" type="file" accept="image/*" capture="environment" class="hidden">
   <img id="preview" class="preview hidden" alt="Ausgewähltes Foto">
   <div id="ocrStatus" class="muted"></div>
   <div id="ocrPanel" class="card hidden">
    <b>Erkannten Text prüfen und Vokabelpaare bilden</b><p class="muted">Die ersten beiden Buchspalten werden getrennt gelesen und nach Zeilenposition zu Paaren verbunden. Prüfe alle Vorschläge und korrigiere sie vor dem Speichern. Eine Zeile = Englisch – Deutsch.</p>
-   <label for="splitRatio">Beginn der deutschen Spalte: <b id="splitValue">34 %</b></label><input id="splitRatio" type="range" min="20" max="75" value="34" step="1"><label for="rightEdge">Ende der deutschen Spalte: <b id="rightValue">71 %</b></label><input id="rightEdge" type="range" min="50" max="100" value="71" step="1"><button class="secondary" id="retryOCR" type="button">Foto mit diesen Spaltengrenzen erneut lesen</button>
-   <div id="pairEditor"><p class="muted">Nach der Erkennung erscheinen hier einzelne, bearbeitbare Vokabelpaare.</p></div>
-   <div class="pair-tools"><button class="secondary" id="addPair" type="button">＋ Paar hinzufügen</button><button class="wide" id="parseOCR" type="button">Geprüfte Paare übernehmen</button></div>
+   <label for="splitRatio">Trennlinie zwischen Englisch und Deutsch: <b id="splitValue">34 %</b> der Bildbreite</label><input id="splitRatio" type="range" min="25" max="48" value="34" step="1"><button class="secondary" id="retryOCR" type="button">Mit dieser Trennlinie neu erkennen</button><textarea id="ocrText" placeholder="a city – eine Stadt, eine Großstadt&#10;my friend – mein Freund / meine Freundin&#10;beach – der Strand"></textarea>
+   <button class="wide" id="parseOCR">Paare übernehmen</button>
   </div>
   <button class="action" id="manualBtn"><span class="ico">＋</span><span><b>Vokabel manuell hinzufügen</b><small>Englisches und deutsches Wort eintragen</small></span></button>
   <div id="manualPanel" class="card hidden"><input id="enInput" placeholder="Englisches Wort"><input id="deInput" placeholder="Deutsche Übersetzung"><button class="wide" id="saveWord">Speichern</button></div>
@@ -100,14 +100,23 @@ $("startQuiz").onclick=()=>{tab("quiz");idx=0;resetQuiz();};$("addFromWords").on
 $("manualBtn").onclick=()=>$("manualPanel").classList.toggle("hidden");
 $("saveWord").onclick=()=>{let en=$("enInput").value.trim(),de=$("deInput").value.trim();if(!en||!de)return;words.push({en,de,ok:0,bad:0});$("enInput").value=$("deInput").value="";$("manualPanel").classList.add("hidden");save();};
 $("direction").onchange=resetQuiz;
+// Tolerante Prüfung: Artikel, "to", Klammern, Satzzeichen und Groß-/Kleinschreibung egal;
+// bei mehreren Bedeutungen (getrennt durch , ; /) reicht eine richtige.
+function norm(s){return String(s).toLocaleLowerCase('de-DE').replace(/\([^)]*\)/g,' ').replace(/[.!?]/g,'').replace(/\s+/g,' ').trim().replace(/^(to|der|die|das|ein|eine|a|an|the)\s+/,'').trim();}
+function variants(s){return String(s).split(/[;,\/]|\boder\b/).map(norm).filter(Boolean);}
+function isCorrect(ans,expected){
+ const a=norm(ans);if(!a)return false;
+ if(a===norm(expected))return true;
+ const v=variants(expected),av=variants(ans);
+ return av.length>0&&av.every(x=>v.includes(x));
+}
 function showQuestion(){if(!words.length){$("question").textContent="Füge zuerst Vokabeln hinzu."; $("answer").disabled=true;$("checkAnswer").disabled=true;return;}let w=words[idx%words.length],dir=$("direction").value;$("question").textContent=dir==="en"?w.en:w.de;$("prompt").textContent=dir==="en"?"Auf Deutsch übersetzen":"Auf Englisch übersetzen";$("questionNumber").textContent="Frage "+(idx+1);$("answer").disabled=false;$("checkAnswer").disabled=false;}
 function resetQuiz(){checked=false;$("answer").value="";$("feedback").className="hidden";$("checkAnswer").classList.remove("hidden");$("nextQuestion").classList.add("hidden");showQuestion();}
-$("checkAnswer").onclick=()=>{if(checked||!words.length)return;let w=words[idx%words.length],dir=$("direction").value,expected=dir==="en"?w.de:w.en,ans=$("answer").value.trim().toLocaleLowerCase("de-DE");if(!ans)return;let good=ans===expected.toLocaleLowerCase("de-DE");if(good)w.ok++;else w.bad++;checked=true;save();$("feedback").className="feedback "+(good?"good":"bad");$("feedback").textContent=good?"Richtig! Sehr gut 🎉":"Noch nicht ganz. Richtige Antwort: "+expected;$("checkAnswer").classList.add("hidden");$("nextQuestion").classList.remove("hidden");};
+$("checkAnswer").onclick=()=>{if(checked||!words.length)return;let w=words[idx%words.length],dir=$("direction").value,expected=dir==="en"?w.de:w.en,ans=$("answer").value.trim().toLocaleLowerCase("de-DE");if(!ans)return;let good=isCorrect(ans,expected);if(good)w.ok++;else w.bad++;checked=true;save();$("feedback").className="feedback "+(good?"good":"bad");$("feedback").textContent=good?"Richtig! Sehr gut 🎉":"Noch nicht ganz. Richtige Antwort: "+expected;$("checkAnswer").classList.add("hidden");$("nextQuestion").classList.remove("hidden");};
 $("nextQuestion").onclick=()=>{idx=(idx+1)%Math.max(1,words.length);resetQuiz();};$("shuffle").onclick=()=>{words.sort(()=>Math.random()-.5);idx=0;resetQuiz();};
 $("photoBtn").onclick=()=>$('photo').click();
 let selectedPhoto=null;
 $('splitRatio').oninput=()=>{$('splitValue').textContent=$('splitRatio').value+' %';};
-$('rightEdge').oninput=()=>{$('rightValue').textContent=$('rightEdge').value+' %';};
 $('retryOCR').onclick=()=>{if(selectedPhoto)scanPhoto(selectedPhoto);};
 $('photo').onchange=e=>{const file=e.target.files[0];if(file){selectedPhoto=file;$('preview').src=URL.createObjectURL(file);$('preview').classList.remove('hidden');$('ocrPanel').classList.remove('hidden');scanPhoto(file);}};
 function loadImage(file){return new Promise((resolve,reject)=>{const im=new Image();const url=URL.createObjectURL(file);im.onload=()=>{URL.revokeObjectURL(url);resolve(im);};im.onerror=reject;im.src=url;});}
@@ -117,68 +126,56 @@ function prepareCrop(img,x0,x1){
  const c=document.createElement('canvas');c.width=width;c.height=height;
  const ctx=c.getContext('2d',{willReadFrequently:true});ctx.drawImage(img,Math.round(x0*img.width),0,Math.round((x1-x0)*img.width),img.height,0,0,width,height);
  const pix=ctx.getImageData(0,0,width,height),d=pix.data;
- for(let i=0;i<d.length;i+=4){const g=.299*d[i]+.587*d[i+1]+.114*d[i+2];const v=Math.max(0,Math.min(255,(g-125)*1.28+135));d[i]=d[i+1]=d[i+2]=v;}
+ // Adaptive Schwellwert (lokaler Mittelwert): gleicht Schatten und ungleichmäßiges Licht aus
+ const W=width,H=height,gray=new Float32Array(W*H),integ=new Float64Array((W+1)*(H+1));
+ for(let i=0,p=0;i<d.length;i+=4,p++)gray[p]=.299*d[i]+.587*d[i+1]+.114*d[i+2];
+ for(let y=0;y<H;y++){let row=0;for(let x=0;x<W;x++){row+=gray[y*W+x];integ[(y+1)*(W+1)+x+1]=integ[y*(W+1)+x+1]+row;}}
+ const r=Math.max(12,Math.round(W/22));
+ for(let y=0;y<H;y++){const y0=Math.max(0,y-r),y1=Math.min(H,y+r+1);
+  for(let x=0;x<W;x++){const x0=Math.max(0,x-r),x1=Math.min(W,x+r+1);
+   const sum=integ[y1*(W+1)+x1]-integ[y0*(W+1)+x1]-integ[y1*(W+1)+x0]+integ[y0*(W+1)+x0];
+   const mean=sum/((x1-x0)*(y1-y0)),v=gray[y*W+x]<mean*0.86?0:255,i=(y*W+x)*4;
+   d[i]=d[i+1]=d[i+2]=v;d[i+3]=255;}}
  ctx.putImageData(pix,0,0);return c;
 }
 function tsvLines(tsv,height){
- // TSV level 4 is a text line; group level-5 words by block/paragraph/line
  const lines=new Map();
  for(const raw of (tsv||'').split(/\r?\n/).slice(1)){
   const c=raw.split('\t');if(c.length<12||c[0]!=='5')continue;
-  const word=c.slice(11).join('\t').trim(),conf=Number(c[10]);
-  if(!word||conf<10)continue;
-  const key=c.slice(1,4).join('.');
-  const x=Number(c[6]),top=Number(c[7]),w=Number(c[8]),h=Number(c[9]);
-  if(!lines.has(key))lines.set(key,{words:[],top,bottom:top+h,ys:[],confidence:[]});
-  const l=lines.get(key);l.words.push({x,word});l.top=Math.min(l.top,top);l.bottom=Math.max(l.bottom,top+h);l.ys.push(top+h/2);l.confidence.push(conf);
+  const word=c.slice(11).join('\t').trim();const conf=Number(c[10]);
+  if(!word||conf<12)continue;
+  const key=c.slice(1,5).join('.'),y=(Number(c[7])+Number(c[9])/2)/height;
+  if(!lines.has(key))lines.set(key,{words:[],ys:[],top:Number(c[7])/height});
+  const l=lines.get(key);l.words.push({x:Number(c[6]),word});l.ys.push(y);
  }
- return [...lines.values()].map(l=>({text:l.words.sort((a,b)=>a.x-b.x).map(w=>w.word).join(' ').replace(/\s+([.,;:!?])/g,'$1').trim(),y:l.ys.reduce((a,b)=>a+b,0)/l.ys.length/height,top:l.top/height,bottom:l.bottom/height,confidence:l.confidence.reduce((a,b)=>a+b,0)/l.confidence.length})).filter(l=>l.text.length>1).sort((a,b)=>a.y-b.y);
+ return [...lines.values()].map(l=>({text:l.words.sort((a,b)=>a.x-b.x).map(w=>w.word).join(' ').replace(/\s+([.,;:!?])/g,'$1'),y:l.ys.reduce((a,b)=>a+b,0)/l.ys.length,top:l.top})).filter(l=>l.text.length>1).sort((a,b)=>a.y-b.y);
 }
-function stripPhonetics(s){return s.replace(/\[[^\]]*\]/g,' ').replace(/\s+/g,' ').trim();}
-function cleanEnglish(s){return stripPhonetics(s).replace(/^\s*\d+[.)]?\s*/,'').replace(/\s+/g,' ').trim();}
-function cleanGerman(s){return stripPhonetics(s).replace(/\s*\([^)]*wörtlich:[^)]*\)/gi,'').replace(/\s+/g,' ').trim();}
-function isNoise(s){return !s||/^(welcome|numbers|english|german|deutsch|englisch|\d+|[!?.\-])$/i.test(s)||s.length<2;}
+function cleanEnglish(s){return s.replace(/^\s*\d+[.)]?\s*/,'').replace(/\s*\[[^\]]*\]/g,'').replace(/\s*\([^)]*\b(?:wən|sɪ|aɪ|ə|ɒ)[^)]*\)/gi,'').replace(/\s+/g,' ').trim();}
+function cleanGerman(s){return s.replace(/\s*\([^)]*wörtlich:[^)]*\)/gi,'').replace(/\s+/g,' ').trim();}
+function isNoise(s){return !s||/^(welcome|numbers|englisch|german|deutsch|\d+|[!?.\-])$/i.test(s)||/^\[/.test(s)||s.length<2;}
 function pairColumns(left,right){
+ // Textzeilen werden unabhängig in jeder Spalte erkannt. Zugeordnet wird anhand
+ // der vertikalen Position; Folgezeilen ohne neuen englischen Eintrag werden angehängt.
  const L=left.map(l=>({...l,text:cleanEnglish(l.text)})).filter(l=>!isNoise(l.text));
  const R=right.map(l=>({...l,text:cleanGerman(l.text)})).filter(l=>!isNoise(l.text));
- // Match rows by normalized vertical center. Use monotonic nearest-neighbour matching,
- // so one German row cannot accidentally be attached to two English rows.
- const pairs=[];let ri=0;
+ const pairs=[];
  for(let i=0;i<L.length;i++){
-  const a=L[i],next=L[i+1],mid=next?(a.y+next.y)/2:1;
-  const candidates=[];
-  while(ri<R.length&&R[ri].y<Math.max(0,a.y-.025))ri++;
-  let j=ri;
-  while(j<R.length&&R[j].y<Math.min(1,mid)){
-   if(Math.abs(R[j].y-a.y)<.035)candidates.push(j);
-   j++;
-  }
-  if(candidates.length){
-   const chosen=candidates.sort((x,y)=>Math.abs(R[x].y-a.y)-Math.abs(R[y].y-a.y))[0];
-   const r=R[chosen];pairs.push({en:a.text,de:r.text});ri=chosen+1;
-  }
+  const current=L[i],prev=L[i-1],next=L[i+1];
+  const lower=next?(current.y+next.y)/2:1;
+  const upper=prev?(prev.y+current.y)/2:0;
+  const matched=R.filter(r=>r.y>=upper&&r.y<lower);
+  if(matched.length){pairs.push({en:current.text,de:matched.map(r=>r.text).join(' ')});}
  }
  return pairs.filter(p=>p.en&&p.de&&!/^(\d+|numbers)/i.test(p.en));
 }
-function renderPairEditor(pairs){
- const host=$('pairEditor');
- if(!pairs.length){host.innerHTML='<p class="muted">Keine Paare erkannt. Passe die Spaltengrenze an oder versuche ein geraderes Foto.</p>';return;}
- host.innerHTML='<table class="pair-table"><thead><tr><th>Englisch</th><th>Deutsch</th><th></th></tr></thead><tbody>'+pairs.map((p,i)=>`<tr><td><input aria-label="Englisch ${i+1}" data-en="${i}" value="${esc(p.en)}"></td><td><input aria-label="Deutsch ${i+1}" data-de="${i}" value="${esc(p.de)}"></td><td><button type="button" data-remove="${i}" aria-label="Paar entfernen">✕</button></td></tr>`).join('')+'</tbody></table>';
- host.querySelectorAll('[data-remove]').forEach(b=>b.onclick=()=>{const all=readPairs();all.splice(+b.dataset.remove,1);renderPairEditor(all);});
-}
-function readPairs(){
- const host=$('pairEditor'),ens=[...host.querySelectorAll('[data-en]')],des=[...host.querySelectorAll('[data-de]')];
- return ens.map((e,i)=>({en:e.value.trim(),de:(des[i]?.value||'').trim()})).filter(p=>p.en&&p.de);
-}
 async function scanPhoto(file){
- $('pairEditor').innerHTML='<p class="muted">Foto wird vorbereitet und spaltenweise erkannt …</p>';$('ocrStatus').textContent='Foto wird in Graustufen umgewandelt und spaltenweise analysiert …';$('retryOCR').disabled=true;
+ $('ocrText').value='';$('ocrStatus').textContent='Foto wird spaltenweise analysiert …';$('retryOCR').disabled=true;
  if(!window.Tesseract){$('ocrStatus').textContent='OCR-Bibliothek nicht geladen. Bitte Internetverbindung prüfen.';$('retryOCR').disabled=false;return;}
  try{
-  const img=await loadImage(file),split=Number($('splitRatio').value)/100,right=Number($('rightEdge').value)/100;
-  if(right<=split+.08)throw new Error('Die rechte Spaltengrenze muss deutlich rechts der Trennlinie liegen.');
+  const img=await loadImage(file),split=Number($('splitRatio').value)/100;
   // Auf diesem Schulbuchtyp beginnt die deutsche Spalte ungefähr bei 34 %;
   // rechts von etwa 70 % stehen Erläuterungen, die ignoriert werden.
-  const regions=[prepareCrop(img,.015,split),prepareCrop(img,split,right)];
+  const regions=[prepareCrop(img,.015,split),prepareCrop(img,split,.705)];
   const columns=[];
   for(let i=0;i<2;i++){
    $('ocrStatus').textContent=`${i===0?'Englische':'Deutsche'} Spalte wird erkannt …`;
@@ -186,15 +183,29 @@ async function scanPhoto(file){
    columns.push(tsvLines(result.data.tsv,regions[i].height));
   }
   const pairs=pairColumns(columns[0],columns[1]);
-  renderPairEditor(pairs);
-  $('ocrStatus').textContent=pairs.length?`${pairs.length} mögliche Paare gefunden. Bitte jedes Paar kontrollieren und bei Bedarf direkt korrigieren.`:'Keine zuverlässigen Paare erkannt. Bitte das Buch möglichst gerade und nah fotografieren und die Trennlinie anpassen.';
+  $('ocrText').value=pairs.map(p=>p.en+' – '+p.de).join('\n');
+  $('ocrStatus').textContent=pairs.length?`${pairs.length} mögliche Vokabelpaare gefunden. Bitte kontrollieren und falsche Zeilen korrigieren oder löschen.`:'Keine zuverlässigen Paare erkannt. Bitte das Buch möglichst gerade und nah fotografieren und die Trennlinie anpassen.';
  }catch(err){console.error(err);$('ocrStatus').textContent='Texterkennung fehlgeschlagen. Bitte erneut versuchen oder die Vokabeln manuell eintragen.';}
  finally{$('retryOCR').disabled=false;}
 }
-$('addPair').onclick=()=>{const all=readPairs();all.push({en:'',de:''});renderPairEditor(all);};
+function parseText(text){
+ // Erlaubt: "en – de", "en - de", "en = de", "en<TAB>de", "en | de", "en  de" (2+ Leerzeichen)
+ // oder abwechselnd Zeilen: erst Englisch, dann Deutsch (z. B. aus iOS-Live-Text)
+ const lines=text.split(/\n/).map(l=>l.replace(/\s*\[[^\]]*\]/g,'').replace(/\s+/g,' ').trim()).filter(Boolean);
+ const sep=/^(.+?)\s*(?:[–—=|\t]|\s-\s|:)\s*(.+)$/;
+ const out=[],loose=[];
+ for(const raw of text.split(/\n/)){
+  const line=raw.replace(/\s*\[[^\]]*\]/g,'').trim();if(!line)continue;
+  const m=line.match(sep)||raw.replace(/\s*\[[^\]]*\]/g,'').trim().match(/^(.+?)\s{2,}(.+)$/);
+  if(m)out.push({en:m[1].trim(),de:m[2].trim(),ok:0,bad:0});else loose.push(line);
+ }
+ if(!out.length&&loose.length>=2)for(let i=0;i+1<loose.length;i+=2)out.push({en:loose[i],de:loose[i+1],ok:0,bad:0});
+ return out;
+}
+$('pasteBtn').onclick=()=>{$('ocrPanel').classList.remove('hidden');$('ocrText').focus();$('ocrStatus').textContent='Text hier einfügen. Format: „englisch – deutsch“, eine Zeile pro Paar (oder abwechselnd Englisch/Deutsch-Zeilen).';};
 $('parseOCR').onclick=()=>{
- const entries=readPairs().map(p=>({...p,ok:0,bad:0}));
- if(!entries.length){alert('Bitte mindestens ein vollständiges Englisch-Deutsch-Paar eintragen.');return;}
+ const entries=parseText($('ocrText').value);
+ if(!entries.length){alert('Keine Paare vorhanden. Jede Zeile muss „Englisch – Deutsch“ enthalten.');return;}
  const existing=new Set(words.map(w=>w.en.toLocaleLowerCase('de-DE')+'|'+w.de.toLocaleLowerCase('de-DE')));
  const fresh=entries.filter(w=>!existing.has(w.en.toLocaleLowerCase('de-DE')+'|'+w.de.toLocaleLowerCase('de-DE')));
  words.push(...fresh);save();$('ocrStatus').textContent=fresh.length+' neue Vokabelpaare übernommen.';tab('words');
