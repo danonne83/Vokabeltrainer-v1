@@ -1,0 +1,9 @@
+{
+  "name": "VokabelTrainer English Deutsch",
+  "short_name": "VokabelTrainer",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#f3f7fd",
+  "theme_color": "#1765cc",
+  "icons": []
+}
